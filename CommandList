@@ -1,0 +1,17 @@
+!play           //Will take any argument and search youtube, pull the top result, join your voice channel if you are in one
+                //and then being playing the audio from whatever you searched for
+
+!stop           //The bot will stop playing audo and leave the voice channel
+
+!clearchat      //The bot will remove lines of text in the discord channel (!clearchat 10)
+
+!ping           //The bot will respond pong!
+
+!info           //The bot will respond sarcastically unless the second argument typed in is version (!info version)
+
+!embed          //The bot will display basic information about the user that typed it in
+
+!rps            //The bot will play rock paper scissors with you! requires a second argument (!rps r)
+
+!coinflip       //The bot will reply either Heads or Tails
+

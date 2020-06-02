@@ -190,39 +190,3 @@ bot.on('message',message=>{
 })
 
 bot.login(token);
-//if(msg.content === "!Hello")
-
-//function play(connection, message){
-//    var server = servers[message.guild.id];
-//    server.dispatcher = connection.play(ytdl(server.queue[0],{filter: "audioonly"}));
-//    server.queue.shift();
-//    server.dispatcher.on("end",function(){
-//        if(server.queue[0]){
-//            play(connection, message);
-//        }else{
-//           connection.disconnect();
-//        }
-//    })
-//}
-//theQuery = 'INSERT INTO songs(userinput,url)VALUES('+str+'),('+url+');';
-                           // safestore();//Remove mid string quotes to keep integrity of insert query (adds __PUTCOMMA..__)
-                           // con.query(theQuery,function (err,result){
-                            //if(err)throw err;
-                            //console.log("Database Insert Query worked!");
-                           // });
-
-                          // var initQuery2 = "CREATE DATABASE IF NOT EXISTS discordmusicbot";
-                           //con.query(initQuery2,function (err,result){
-                           //    if(err)throw err;
-                           //    }
-                           //);
-                      // var initQuery3 = "USE discordmusicbot";
-                           //con.query(initQuery3,function (err,result){
-                            //   if(err)throw err;
-                             //  }
-                          // );
-                      // var initQuery4 = "CREATE TABLE if not exists songs(num INT UNIQUE AUTO_INCREMENT,usertyped VARCHAR(255), url VARCHAR(255));";
-                           //con.query(initQuery4,function (err,result){
-                             //  if(err)throw err;
-                             //  }
-                        //   );

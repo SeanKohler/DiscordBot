@@ -89,9 +89,7 @@ bot.on('message',message=>{
                                 console.log("I Failed");
                                 throw err;
                             }else{
-                            //message.channel.send(r.videos[0].url);
-                            //console.log(r);
-                                
+
                             if(r.videos[0]==undefined){
                                 message.reply("Undefined :/")
                                 message.channel.send("Please try again");
@@ -99,16 +97,7 @@ bot.on('message',message=>{
                                 
                             }else{
                             url=r.videos[0].url
-                            
-                            //videos = r.videos
-                            //url= videos[0].url; 
-                            //console.log(videos[0].url); 
-                            
-                            //console.log(str);
-                            //console.log(url);
                             addtoHistory(str,url);
-                            
-                            
                             
                             message.channel.send("!play "+url);
                             message.channel.send("!clearchat 2");
@@ -176,16 +165,9 @@ bot.on('message',message=>{
                         }
                 
                     });
-                    //for(var i=0; i<history.length; i++){
-                    //    message.channel.send(history[i]+" HERE!");
-                    //}
+                   
                 }
-                //for(var i=0; i<history.length; i++){
-                //    console.log("HERE 1");
-                //    message.channel.send(history[i]+" HERE");
-                //}
-
-                        
+                                       
             break;
 
         case 'clearhistory':
@@ -194,8 +176,6 @@ bot.on('message',message=>{
             con.query(initQuery2,function (err,result){
             if(err)throw err;
             });
-
-
         break;
         
         case 'stop':
@@ -234,10 +214,6 @@ bot.on('message',message=>{
 })
 
 bot.login(token);
-
-
-
-
 
 function addtoHistory(str,url){
     str ='"'+str+'"';
@@ -278,10 +254,6 @@ function initdatabase(){
     con.query(initQuery3,function (err,result){
         if(err)throw err;
         });
-    //var initQuery4 = "DROP TABLE IF EXISTS songs;";
-    //con.query(initQuery4,function (err,result){
-    //    if(err)throw err;
-    //    });
     var initQuery5 = "CREATE TABLE if not exists songs(num INT UNIQUE AUTO_INCREMENT,usertyped VARCHAR(255), url VARCHAR(255));";
     con.query(initQuery5,function (err,result){
         if(err)throw err;

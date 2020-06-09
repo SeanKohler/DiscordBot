@@ -3,18 +3,24 @@ const ytdl = require('ytdl-core');
 const yts = require( 'yt-search' );
 const mysql = require('mysql');
 const credentials = require('./mysql');
+const cases = require('./cases');
+const tkn = require('./token');
 const con = mysql.createConnection(credentials);
 const bot = new Discord.Client();
-const token ='NzE2NDcwNDE5Nzk1ODY5Njk2.XtMPRQ.V1zMU0_bAzQXBbvw9nh4fQq8VOg'; //I've Reset this token
+const token = tkn.token;
 const PREFIX ='!';
-const version = "1.0.0";
+const version = "1.1.0";
 var servers ={};
 var inChannel = false;
 var url="";
 var videos ="";
 var theQuery;
+var text;
+var history=[];
+var logs=[];
+var loop=false;
 
-
+initdatabase();
 
 bot.on('ready', () =>{
 console.log("DrMusic is running!");
@@ -25,39 +31,24 @@ bot.on('message',message=>{
 
     switch(args[0]){
         case 'ping':
-            message.channel.send("pong!");
+            cases.ping(message);
             break;
         
         case 'website':
-            message.channel.send("www.spotify.com");
+            cases.website(message);
             break;
 
         case 'info':
-            if(args[1] === 'version'){
-                message.channel.send("I'm currently in version: "+version);
-            }else{
-                message.channel.send("Do I look like a support bot to you?");
-            }
+            cases.info(args,message);
             break;
         
         case 'clearchat':
-            if(!args[1]) return message.reply("Error you are not as powerful as me lol");
-            message.channel.bulkDelete(args[1]);
+            message.channel.bulkDelete(1);
+            cases.clearchat(args,message);
             break;
 
         case 'embed':
-            const embed = new Discord.MessageEmbed()
-            .setColor(0x25FA34)
-            .setThumbnail(message.author.displayAvatarURL())
-            .setTitle("User Information")
-            .setDescription("Player Name: "+ message.author.username)
-            .addFields(
-                { name: "Current Server: ", value: message.guild.name },
-                { name: "Roles: ", value: message.guild.roles.highest.name })
-            //message.member.roles
-            //.addField("Version: "+version)
-            //.addField("Current Server: "+message.guild.name,);
-            message.channel.send(embed);
+            cases.embed(message);
             break;
         
         case 'play':
@@ -91,23 +82,41 @@ bot.on('message',message=>{
                         for(var i=1; i<args.length;i++){
                             str+=args[i]+" ";
                         }
-                        console.log(str);
+                        //console.log(str);
                         yts( str, function ( err, r ) {
-
+                            if(err){
+                                message.channel.send("I Failed");
+                                console.log("I Failed");
+                                throw err;
+                            }else{
                             //message.channel.send(r.videos[0].url);
-                            console.log(r);
+                            //console.log(r);
                                 
+                            if(r.videos[0]==undefined){
+                                message.reply("Undefined :/")
+                                message.channel.send("Please try again");
+                                console.log("undefined");
                                 
+                            }else{
                             url=r.videos[0].url
                             
                             //videos = r.videos
                             //url= videos[0].url; 
-                            //console.log(videos[0].url);  
+                            //console.log(videos[0].url); 
+                            
+                            //console.log(str);
+                            //console.log(url);
+                            addtoHistory(str,url);
+                            
                             
                             
                             message.channel.send("!play "+url);
                             message.channel.send("!clearchat 2");
                             let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}));
+                           
+                            
+                            }
+                            }
                             })
                             
                           
@@ -121,48 +130,73 @@ bot.on('message',message=>{
         break;
 
         case 'rps':
-            if(!args[1]){
-                message.channel.send("You need to choose Rock, Paper, or Scissors");
-            }else{
-                var num= Math.floor(Math.random()*3);
-                //message.channel.send(num);
-                if(num==0){
-                    if(args[1]=='Paper'||args[1]=='P'||args[1]=='p'){
-                        message.channel.send("I Chose Rock! You've won!");
-                        break;
-                    }else if(args[1]=='Rock'||args[1]=='R'||args[1]=='r') {
-                        message.channel.send("I Chose Rock! We Tied :/");
-                        break;
-                    }else{
-                        message.channel.send("I Chose Rock! HA! I am the superior being! :)");
-                        break;
-                    }
-                }else if(num==1){
-                    if(args[1]=='Scissors'||args[1]=='S'||args[1]=='s'||args[1]=='Scissor'){
-                        message.channel.send("I Chose Paper! You've won!");
-                        break;
-                    }else if(args[1]=='Paper'||args[1]=='P'||args[1]=='p'){
-                        message.channel.send("I Chose Paper! We Tied :/");
-                        break;
-                    }else{
-                        message.channel.send("I Chose Paper! HA! I am the superior being! :)");
-                        break;
-                    }
-            }else if(num==2){
-                if(args[1]=='Rock'||args[1]=='R'||args[1]=='r'){
-                    message.channel.send("I Chose Scissors! You've won!");
-                    break;
-                }else if(args[1]=='Scissors'||args[1]=='S'||args[1]=='s'||args[1]=='Scissor'){
-                    message.channel.send("I Chose Scissors! We Tied :/");
-                    break;
-                }else{
-                    message.channel.send("I Chose Scissors! HA! I am the superior being! :)");
-                    break;
-                }
-            }
-        }
+           cases.rps(args,message);
         break;
         //case 'skip:
+
+        case 'history':
+                var records=10;
+                grabHistory(records); 
+                function grabHistory(records){
+                    theQuery = "SELECT * FROM songs";
+                    //console.log(theQuery);
+                    con.query(theQuery,function (err,result){
+                        if(err)throw err;
+                        //console.log(result[0].usertyped);
+                        //removePlaceholder();//Replaces __PUTCOMMA..__ that safe stores in database
+                        for(var i=0; i<=records; i++){
+                            if(result[i]==undefined){
+                                console.log("Searching For Out of bounds");
+                            }else{
+                            var txt=result[i].usertyped
+                            txt = txt.trim();
+                            console.log("TXT: "+txt);
+                            var link =result[i].url;
+                            var done="Record: "+"<"+txt+">"+" Link: "+"<"+link+">";
+                            var exists=false;
+                            for(var j=0; j<history.length;j++){
+                                if(done==history[j]){
+                                    exists=true;
+                                    console.log("Dont add. It already exists");
+                                }
+                            }
+                            if(exists==false){
+                             history.push(done);   
+                            }
+                            console.log(history[i]);
+                            
+                            }
+                            
+                        }
+                        console.log("Result: "+result);
+                        console.log(history.length);
+                        for(var i=0; i<history.length; i++){
+                            console.log("HERE 2");
+                            message.channel.send(history[i]);
+                        }
+                
+                    });
+                    //for(var i=0; i<history.length; i++){
+                    //    message.channel.send(history[i]+" HERE!");
+                    //}
+                }
+                //for(var i=0; i<history.length; i++){
+                //    console.log("HERE 1");
+                //    message.channel.send(history[i]+" HERE");
+                //}
+
+                        
+            break;
+
+        case 'clearhistory':
+            message.channel.bulkDelete(1);
+            var initQuery2 = "DELETE FROM songs;";
+            con.query(initQuery2,function (err,result){
+            if(err)throw err;
+            });
+
+
+        break;
         
         case 'stop':
             message.channel.bulkDelete(1);
@@ -172,21 +206,84 @@ bot.on('message',message=>{
                 inChannel=false;
             }
             if(inChannel==true) {
-                 message.guild.voice.connection.disconnect();                
+                message.member.voice.channel.join().then(function(connection){
+                let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}));
+                 message.guild.voice.connection.disconnect();   
+                })             
             }
             
             break;
+
+        case 'howtospoon':
+            cases.hts(message);
+            break;
+
+        case 'cl':
+            cases.cl(message);
+            break;
+
+        case 'cs':
+            cases.cs(message);
+            break;
         
         case 'coinflip':
-            var num= Math.floor(Math.random()*2);
-            if(num==0){
-                message.reply("Heads!");
-            }else{
-                message.reply("Tails!");
-            }
+            cases.coinflip();
             break;
 
 }
 })
 
 bot.login(token);
+
+
+
+
+
+function addtoHistory(str,url){
+    str ='"'+str+'"';
+    url ='"'+url+'"';
+    theQuery = 'INSERT INTO songs(usertyped,url)VALUES('+str+','+url+');';
+    safestore();//Remove mid string quotes to keep integrity of insert query (adds __PUTCOMMA..__)
+    con.query(theQuery,function (err,result){
+    if(err)throw err;
+    console.log("Database Insert Query worked!");
+    });
+}
+
+
+function safestore(){
+    theQuery = theQuery.replace(/'s/g,"__PUTCOMMAS__");
+    theQuery = theQuery.replace(/'m/g,"__PUTCOMMAM__");
+    theQuery = theQuery.replace(/'re/g,"__PUTCOMMARE__");
+    theQuery = theQuery.replace(/'r/g,"__PUTCOMMAR__");
+    theQuery = theQuery.replace(/'ll/g,"__PUTCOMMAll__");
+    theQuery = theQuery.replace(/'ve/g,"__PUTCOMMAVE__");
+    theQuery = theQuery.replace(/'/g," ");
+}
+
+function removePlaceholder(){
+    text = text.replace(/__PUTCOMMAS__/g,"'s");
+    text = text.replace(/__PUTCOMMAM__/g,"'m");
+    text = text.replace(/__PUTCOMMARE__/g,"'re");
+    text = text.replace(/__PUTCOMMAR__/g,"'r");
+    text = text.replace(/__PUTCOMMAll__/g,"'ll");
+    text = text.replace(/__PUTCOMMAVE__/g,"'ve");
+}
+function initdatabase(){
+    var initQuery2 = "CREATE DATABASE IF NOT EXISTS discordmusicbot";
+    con.query(initQuery2,function (err,result){
+        if(err)throw err;
+        });
+    var initQuery3 = "USE discordmusicbot";
+    con.query(initQuery3,function (err,result){
+        if(err)throw err;
+        });
+    //var initQuery4 = "DROP TABLE IF EXISTS songs;";
+    //con.query(initQuery4,function (err,result){
+    //    if(err)throw err;
+    //    });
+    var initQuery5 = "CREATE TABLE if not exists songs(num INT UNIQUE AUTO_INCREMENT,usertyped VARCHAR(255), url VARCHAR(255));";
+    con.query(initQuery5,function (err,result){
+        if(err)throw err;
+        });
+}

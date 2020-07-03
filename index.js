@@ -1,26 +1,23 @@
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
 const yts = require( 'yt-search' );
-const mysql = require('mysql');
-const credentials = require('./mysql');
+const fs = require('fs');
 const cases = require('./cases');
 const tkn = require('./token');
-const con = mysql.createConnection(credentials);
-const bot = new Discord.Client();
 const token = tkn.token;
+const bot = new Discord.Client();
 const PREFIX ='!';
-const version = "1.1.0";
+const version = "1.2.0";
 var servers ={};
 var inChannel = false;
 var url="";
-var videos ="";
-var theQuery;
-var text;
-var history=[];
+var flavortext=['Im preparing for musical surgery: Please hold!', 'Clear to cut into some spicy songs: Please hold!', 'You are listening to Doctor Music: Please hold!'];
 var logs=[];
-var loop=false;
-
-initdatabase();
+var seconds=1;
+var firstplay=true;
+var currentindex;
+var inqueue=false;
+var inloop=false;
 
 bot.on('ready', () =>{
 console.log("DrMusic is running!");
@@ -52,7 +49,6 @@ bot.on('message',message=>{
             break;
         
         case 'play':
-
             if(message.member.voice.channel){
                 inChannel=true;
             }else{
@@ -82,34 +78,7 @@ bot.on('message',message=>{
                         for(var i=1; i<args.length;i++){
                             str+=args[i]+" ";
                         }
-                        //console.log(str);
-                        yts( str, function ( err, r ) {
-                            if(err){
-                                message.channel.send("I Failed");
-                                console.log("I Failed");
-                                throw err;
-                            }else{
-
-                            if(r.videos[0]==undefined){
-                                message.reply("Undefined :/")
-                                message.channel.send("Please try again");
-                                console.log("undefined");
-                                
-                            }else{
-                            url=r.videos[0].url
-                            addtoHistory(str,url);
-                            
-                            message.channel.send("!play "+url);
-                            message.channel.send("!clearchat 2");
-                            let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}));
-                           
-                            
-                            }
-                            }
-                            })
-                            
-                          
-                        //play(connection, message);
+                        play(message,str);
                         message.channel.bulkDelete(1);
                     })
                 }else{
@@ -121,64 +90,86 @@ bot.on('message',message=>{
         case 'rps':
            cases.rps(args,message);
         break;
-        //case 'skip:
 
         case 'history':
-                var records=10;
-                grabHistory(records); 
-                function grabHistory(records){
-                    theQuery = "SELECT * FROM songs";
-                    //console.log(theQuery);
-                    con.query(theQuery,function (err,result){
-                        if(err)throw err;
-                        //console.log(result[0].usertyped);
-                        //removePlaceholder();//Replaces __PUTCOMMA..__ that safe stores in database
-                        for(var i=0; i<=records; i++){
-                            if(result[i]==undefined){
-                                console.log("Searching For Out of bounds");
-                            }else{
-                            var txt=result[i].usertyped
-                            txt = txt.trim();
-                            console.log("TXT: "+txt);
-                            var link =result[i].url;
-                            var done="Record: "+"<"+txt+">"+" Link: "+"<"+link+">";
-                            var exists=false;
-                            for(var j=0; j<history.length;j++){
-                                if(done==history[j]){
-                                    exists=true;
-                                    console.log("Dont add. It already exists");
-                                }
-                            }
-                            if(exists==false){
-                             history.push(done);   
-                            }
-                            console.log(history[i]);
-                            
-                            }
-                            
-                        }
-                        console.log("Result: "+result);
-                        console.log(history.length);
-                        for(var i=0; i<history.length; i++){
-                            console.log("HERE 2");
-                            message.channel.send(history[i]);
-                        }
-                
-                    });
-                   
+                fs.readFile('histlog.txt', 'utf8', function (err,data) {
+                    if (err) {
+                      return console.log(err);
+                    }
+                    console.log(data);
+                    message.channel.send(data);
+                  });                        
+            break;
+        
+
+        case 'queue':
+            inqueue=true;
+            logs=[];
+            if(!args[1]){
+                message.channel.send("Add elements you want to be queued");
+            }else{
+                if(message.member.voice.channel){
+            
+                message.member.voice.channel.join();
+                for(var i=1; i<args.length; i++){
+                    var str =args[i];
+                    str = str.replace(/-/g," ");
+                    logs.push(str);
                 }
-                                       
+                var increment=0;
+                currentindex=logs[0];
+                console.log("Playing: "+ currentindex);
+                play(message,currentindex);
+            }
+            }
+            break;
+
+        case 'loop':
+            inloop=true;
+            if(!args[1]){
+                message.channel.send("Add what title you wish to be looped");
+            }else{
+                currentindex=args[1];
+                play(message,currentindex);
+            }
+            break;
+
+        case 'skip':
+            message.channel.bulkDelete(1);
+            if(logs[1]==undefined){
+                message.channel.send("Queue has ended!");
+                console.log("Queue has ended!");
+                message.channel.send("!stop");
+            }else{
+            console.log("Skipping: "+logs[0]);
+            var skip= logs;
+            skip.shift();
+            logs=skip;
+            currentindex=logs[0];
+            play(message,currentindex);
+            }
             break;
 
         case 'clearhistory':
-            message.channel.bulkDelete(1);
-            var initQuery2 = "DELETE FROM songs;";
-            con.query(initQuery2,function (err,result){
-            if(err)throw err;
-            });
+            var catalog;
+            fs.readFile('histlog.txt', 'utf8', function (err,data) {
+                if (err) {
+                  return console.log(err);
+                }
+                catalog=data;
+            fs.appendFile('catalog.txt', catalog, function (err) {
+                if (err) throw err;
+                console.log('Saved!');
+              });
+              catalog="";
+            fs.writeFile('histlog.txt', catalog, function (err) {
+                if (err) throw err;
+              });
+              });
         break;
         
         case 'stop':
+            logs=[];
             message.channel.bulkDelete(1);
             if(message.member.voice.channel){
                 inChannel=true;
@@ -194,7 +185,7 @@ bot.on('message',message=>{
             
             break;
 
-        case 'howtospoon':
+        case 'hts':
             cases.hts(message);
             break;
 
@@ -207,55 +198,71 @@ bot.on('message',message=>{
             break;
         
         case 'coinflip':
-            cases.coinflip();
+            cases.coinflip(message);
             break;
 
 }
 })
 
 bot.login(token);
+function play(message,str){
+    message.member.voice.channel.join().then(function(connection){
+    yts( str, function ( err, r ) {
+        if(err){
+            if(logs[0]==undefined){
+                message.channel.send("!stop");
+            }
+            play(message,str);
+            throw err;
+        }else{
+            
+        if(r.videos[0]==undefined){
+            play(message,str);
+            if(firstplay==true){
+                var num= Math.floor(Math.random()*3);
+                message.channel.send(flavortext[num]);
+             console.log("undefined in function play ");
+             firstplay=false;   
+            }
+            
+            
+        }else{
+        seconds=r.videos[0].seconds
+        url=r.videos[0].url
+        var author = message.member.user.username;
+        addtoHistory(str,url,seconds,author);
+        if(firstplay==false){
+            message.channel.bulkDelete(1);
+        }
+        
+        
+        firstplay=true;
+        message.channel.send("!play "+url);
+        message.channel.send("!clearchat 2");
+        if(logs.length>1||inqueue==true){
+            inqueue=false;
+        let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
+            logs.shift();
+            play(message,logs[0]);
+        });
+    }else if(inloop==true){
+        let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
+            play(message,currentindex);
+        });
+    }else{
+        let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}))
+    }
 
-function addtoHistory(str,url){
-    str ='"'+str+'"';
-    url ='"'+url+'"';
-    theQuery = 'INSERT INTO songs(usertyped,url)VALUES('+str+','+url+');';
-    safestore();//Remove mid string quotes to keep integrity of insert query (adds __PUTCOMMA..__)
-    con.query(theQuery,function (err,result){
-    if(err)throw err;
-    console.log("Database Insert Query worked!");
-    });
+        }
+        }
+        })
+    })
 }
 
-
-function safestore(){
-    theQuery = theQuery.replace(/'s/g,"__PUTCOMMAS__");
-    theQuery = theQuery.replace(/'m/g,"__PUTCOMMAM__");
-    theQuery = theQuery.replace(/'re/g,"__PUTCOMMARE__");
-    theQuery = theQuery.replace(/'r/g,"__PUTCOMMAR__");
-    theQuery = theQuery.replace(/'ll/g,"__PUTCOMMAll__");
-    theQuery = theQuery.replace(/'ve/g,"__PUTCOMMAVE__");
-    theQuery = theQuery.replace(/'/g," ");
-}
-
-function removePlaceholder(){
-    text = text.replace(/__PUTCOMMAS__/g,"'s");
-    text = text.replace(/__PUTCOMMAM__/g,"'m");
-    text = text.replace(/__PUTCOMMARE__/g,"'re");
-    text = text.replace(/__PUTCOMMAR__/g,"'r");
-    text = text.replace(/__PUTCOMMAll__/g,"'ll");
-    text = text.replace(/__PUTCOMMAVE__/g,"'ve");
-}
-function initdatabase(){
-    var initQuery2 = "CREATE DATABASE IF NOT EXISTS discordmusicbot";
-    con.query(initQuery2,function (err,result){
-        if(err)throw err;
-        });
-    var initQuery3 = "USE discordmusicbot";
-    con.query(initQuery3,function (err,result){
-        if(err)throw err;
-        });
-    var initQuery5 = "CREATE TABLE if not exists songs(num INT UNIQUE AUTO_INCREMENT,usertyped VARCHAR(255), url VARCHAR(255));";
-    con.query(initQuery5,function (err,result){
-        if(err)throw err;
-        });
+function addtoHistory(str,url,seconds,author){
+    var txt =str+"\t -- "+"<"+url+">"+" --\t "+seconds+" -- "+author+"\n";
+    fs.appendFile('histlog.txt', txt, function (err) {
+        if (err) throw err;
+        console.log('Saved!');
+      });
 }

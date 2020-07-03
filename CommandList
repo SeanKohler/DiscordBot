@@ -1,5 +1,13 @@
 !play           //Will take any argument and search youtube, pull the top result, join your voice channel if you are in one
                 //and then being playing the audio from whatever you searched for
+                
+!queue          //Takes a list of songs you want to play. if the song has a space in the name replace it with a "-". here is an example of the command being run:
+                // EX. !queue happy-birthday Wii-channel-theme Smb2-main-theme
+                // If you leave a space instead of a "-". It will play the next word as a seperate song
+                
+!skip           //The bot will skip the current song playing (ONLY works when a queue is active)
+
+!loop           //The bot will loop any one song provided
 
 !stop           //The bot will stop playing audo and leave the voice channel
 

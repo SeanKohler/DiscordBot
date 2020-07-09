@@ -7,21 +7,38 @@ const tkn = require('./token');
 const token = tkn.token;
 const bot = new Discord.Client();
 const PREFIX ='!';
-const version = "1.2.0";
+const version = "1.3.0";
+var cache={
+    name: [],
+    url: [],
+    seconds: []
+}
 var servers ={};
 var inChannel = false;
 var url="";
-var flavortext=['Im preparing for musical surgery: Please hold!', 'Clear to cut into some spicy songs: Please hold!', 'You are listening to Doctor Music: Please hold!'];
+var wait=': Please hold! (processing command)';
+var flavortext=[
+    'Im preparing for musical surgery'+wait,
+    'Clear to cut into some spicy songs'+wait, 
+    'You are listening to Doctor Music'+wait
+];
 var logs=[];
 var seconds=1;
 var firstplay=true;
 var currentindex;
 var inqueue=false;
 var inloop=false;
+var alreadyAPIcalled =false;
+var cacheIndex;
 
 bot.on('ready', () =>{
-console.log("DrMusic is running!");
-})
+    console.log("DrMusic is running!");
+    })
+
+bot.login(token);
+
+grabCache();
+
 
 bot.on('message',message=>{
     let args = message.content.substring(PREFIX.length).split(" ");
@@ -64,12 +81,6 @@ bot.on('message',message=>{
                 message.channel.send("You must be in a channel to request a song!");
                 return;
             }
-            if(!servers[message.guild.id]) servers[message.guild.id]={
-                queue:[]
-            }
-            var server = servers[message.guild.id];
-            server.queue.push(args[1]);
-
             if(!message.member.voice.connection){
                 if(message.member.voice.channel){
                     inChannel=true;
@@ -79,7 +90,6 @@ bot.on('message',message=>{
                             str+=args[i]+" ";
                         }
                         play(message,str);
-                        message.channel.bulkDelete(1);
                     })
                 }else{
                     inChannel=false;
@@ -98,7 +108,7 @@ bot.on('message',message=>{
                     }
                     console.log(data);
                     message.channel.send(data);
-                  });                        
+                  });
             break;
         
 
@@ -115,9 +125,12 @@ bot.on('message',message=>{
                     var str =args[i];
                     str = str.replace(/-/g," ");
                     logs.push(str);
+                    //message.channel.send(args[i]);
                 }
-                var increment=0;
                 currentindex=logs[0];
+                //setTimeout(encapsulate,1000*time);
+                //function encapsulate(){
+                console.log("--------------Start of the Queue--------------");
                 console.log("Playing: "+ currentindex);
                 play(message,currentindex);
             }
@@ -129,8 +142,15 @@ bot.on('message',message=>{
             if(!args[1]){
                 message.channel.send("Add what title you wish to be looped");
             }else{
-                currentindex=args[1];
-                play(message,currentindex);
+                if(!message.member.voice.connection){
+                    if(message.member.voice.channel){
+                        inChannel=true;
+                        message.member.voice.channel.join()}
+                        currentindex=args[1];
+                        play(message,currentindex);
+                    }else{
+                        inChannel=false;
+                    }
             }
             break;
 
@@ -166,10 +186,15 @@ bot.on('message',message=>{
                 if (err) throw err;
               });
               });
+            //var author = message.member.nickname;
+
+
         break;
         
         case 'stop':
             logs=[];
+            currentindex="";
+            inloop=false;
             message.channel.bulkDelete(1);
             if(message.member.voice.channel){
                 inChannel=true;
@@ -177,13 +202,21 @@ bot.on('message',message=>{
                 inChannel=false;
             }
             if(inChannel==true) {
-                message.member.voice.channel.join().then(function(connection){
-                let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}));
-                 message.guild.voice.connection.disconnect();   
-                })             
+                message.member.voice.channel.join()
+                 message.guild.voice.connection.disconnect();           
             }
             
             break;
+        
+        case 'everyname':
+            message.channel.bulkDelete(1);
+            var namestr="";
+            for(var i=0; i<cache.name.length; i++){
+                namestr+=cache.name[i]+", ";
+            }
+            message.channel.send(namestr);
+
+        break;
 
         case 'hts':
             cases.hts(message);
@@ -204,65 +237,113 @@ bot.on('message',message=>{
 }
 })
 
-bot.login(token);
 function play(message,str){
-    message.member.voice.channel.join().then(function(connection){
-    yts( str, function ( err, r ) {
-        if(err){
-            if(logs[0]==undefined){
-                message.channel.send("!stop");
+    str=str.trim();
+    alreadyAPIcalled=false;
+    for(var i=0; i<cache.name.length; i++){
+        //console.log("Does "+str+" = "+cache.name[i]);
+        cache.name[i]=cache.name[i].trim();
+        if(str==cache.name[i].toString()){
+            //console.log("YES!");
+            alreadyAPIcalled=true;
+            cacheIndex=i;
+        }
+    }
+    if(alreadyAPIcalled==true){
+        alreadyCalled(message,str)
+    }else{
+
+        yts( str, function ( err, r ) {
+            if(err){
+                if(logs[0]==undefined){
+                    message.channel.send("!stop");
+                }
+                play(message,str);
+                throw err;
+            }else{                
+            if(r.videos[0]==undefined){
+                play(message,str);
+                if(firstplay==true){
+                    var num= Math.floor(Math.random()*flavortext.length);
+                    message.channel.send(flavortext[num]);
+                    console.log("--------------------------------");
+                    console.log("undefined in function play ");
+                    console.log("Attempting to play: "+str);
+                    console.log("Playing in Server: "+message.guild.name);
+                    console.log("--------------------------------\n");
+                    firstplay=false;   
+                }
+                
+            }else{
+                cache.seconds.push(r.videos[0].seconds);
+                cache.url.push(r.videos[0].url);
+                cache.name.push(str);
+                console.log("Added to cache");
+                play(message,str);
             }
-            play(message,str);
-            throw err;
+        
+    }
+})
+    }
+}
+
+
+
+function addtoHistory(str,url,seconds,author){
+    cacheToText();
+    var txt =str+"\t -- "+"<"+url+">"+" --\t "+seconds+" -- "+author+"\n";
+    fs.appendFile('histlog.txt', txt, function (err) {
+        if (err) throw err;
+        console.log('Playing: '+str+" \n");
+      });
+}
+
+function grabCache(){
+    fs.readFile('cache.json', 'utf8', function (err,data) {
+        if (err) {
+          return console.log(err);
+        }
+        if(cache==undefined){
+            console.log("cache undefined");
         }else{
-            
-        if(r.videos[0]==undefined){
-            play(message,str);
-            if(firstplay==true){
-                var num= Math.floor(Math.random()*3);
-                message.channel.send(flavortext[num]);
-             console.log("undefined in function play ");
-             firstplay=false;   
-            }
-            
-            
-        }else{
-        seconds=r.videos[0].seconds
-        url=r.videos[0].url
-        var author = message.member.user.username;
-        addtoHistory(str,url,seconds,author);
-        if(firstplay==false){
-            message.channel.bulkDelete(1);
+          cache=JSON.parse(data);  
         }
         
+    })
+}
+
+function cacheToText(){
+    var jsonData = JSON.stringify(cache);
+fs.writeFile("cache.json", jsonData, function(err) {
+    if (err) {
+        console.log(err);
+    }
+});
+}
+
+function alreadyCalled(message,str){
+    message.channel.bulkDelete(1);
+        console.log("Already called!");
+        message.member.voice.channel.join().then(function(connection){
         
-        firstplay=true;
-        message.channel.send("!play "+url);
-        message.channel.send("!clearchat 2");
-        if(logs.length>1||inqueue==true){
+        seconds=cache.seconds[cacheIndex];
+        url=cache.url[cacheIndex];
+        var author = message.member.user.username;
+        addtoHistory(str,url,seconds,author);
+        
+        if(inloop==true){
+            let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
+                alreadyCalled(message,str);
+            });
+        }else if(logs.length>1||inqueue==true){
             inqueue=false;
         let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
             logs.shift();
             play(message,logs[0]);
         });
-    }else if(inloop==true){
-        let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
-            play(message,currentindex);
-        });
     }else{
         let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}))
+        ytdl(url).pipe(fs.createWriteStream('audio.mp3'));
     }
-
-        }
-        }
-        })
     })
-}
-
-function addtoHistory(str,url,seconds,author){
-    var txt =str+"\t -- "+"<"+url+">"+" --\t "+seconds+" -- "+author+"\n";
-    fs.appendFile('histlog.txt', txt, function (err) {
-        if (err) throw err;
-        console.log('Saved!');
-      });
 }

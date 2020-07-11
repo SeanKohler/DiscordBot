@@ -1,19 +1,22 @@
+//---------------------------------------------
+//-------- Code Written by Sean Kohler --------
+//------ Current Working Version: 1.4.0 -------
+//---------------------------------------------
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
 const yts = require( 'yt-search' );
 const fs = require('fs');
-const cases = require('./cases');
 const tkn = require('./token');
 const token = tkn.token;
 const bot = new Discord.Client();
+bot.commands = new Discord.Collection();
+const commandFiles =fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
 const PREFIX ='!';
-const version = "1.3.0";
 var cache={
     name: [],
     url: [],
     seconds: []
 }
-var servers ={};
 var inChannel = false;
 var url="";
 var wait=': Please hold! (processing command)';
@@ -31,6 +34,13 @@ var inloop=false;
 var alreadyAPIcalled =false;
 var cacheIndex;
 
+
+for(const file of commandFiles){
+    const command = require(`./commands/${file}`);
+    bot.commands.set(command.name, command);
+}
+
+
 bot.on('ready', () =>{
     console.log("DrMusic is running!");
     })
@@ -39,205 +49,95 @@ bot.login(token);
 
 grabCache();
 
-
 bot.on('message',message=>{
     let args = message.content.substring(PREFIX.length).split(" ");
 
     switch(args[0]){
         case 'ping':
-            cases.ping(message);
+            bot.commands.get('ping').execute(message,args);
             break;
         
         case 'website':
-            cases.website(message);
+            bot.commands.get('website').execute(message,args);
             break;
 
         case 'info':
-            cases.info(args,message);
+            bot.commands.get('info').execute(message,args);
             break;
         
         case 'clearchat':
-            message.channel.bulkDelete(1);
-            cases.clearchat(args,message);
+            bot.commands.get('clearchat').execute(message,args);
             break;
 
         case 'embed':
-            cases.embed(message);
+            bot.commands.get('embed').execute(message,args);
             break;
         
         case 'play':
-            if(message.member.voice.channel){
-                inChannel=true;
-            }else{
-                inChannel=false;
-                message.channel.bulkDelete(1);
-            }
-
-            if(!args[1]){
-                message.channel.send("Please specify a song link you want me to play!");
-                return;
-            }
-            if(inChannel=false){
-                message.channel.send("You must be in a channel to request a song!");
-                return;
-            }
-            if(!message.member.voice.connection){
-                if(message.member.voice.channel){
-                    inChannel=true;
-                    message.member.voice.channel.join().then(function(connection){
-                        var str='';
-                        for(var i=1; i<args.length;i++){
-                            str+=args[i]+" ";
-                        }
-                        play(message,str);
-                    })
-                }else{
-                    inChannel=false;
-                }
-        }
+            bot.commands.get('play').execute(message,args,play);
         break;
 
         case 'rps':
-           cases.rps(args,message);
+           bot.commands.get('rps').execute(message,args);
         break;
 
         case 'history':
-                fs.readFile('histlog.txt', 'utf8', function (err,data) {
-                    if (err) {
-                      return console.log(err);
-                    }
-                    console.log(data);
-                    message.channel.send(data);
-                  });
+            bot.commands.get('history').execute(message,args);
             break;
         
 
         case 'queue':
-            inqueue=true;
-            logs=[];
-            if(!args[1]){
-                message.channel.send("Add elements you want to be queued");
-            }else{
-                if(message.member.voice.channel){
-            
-                message.member.voice.channel.join();
-                for(var i=1; i<args.length; i++){
-                    var str =args[i];
-                    str = str.replace(/-/g," ");
-                    logs.push(str);
-                    //message.channel.send(args[i]);
-                }
-                currentindex=logs[0];
-                //setTimeout(encapsulate,1000*time);
-                //function encapsulate(){
-                console.log("--------------Start of the Queue--------------");
-                console.log("Playing: "+ currentindex);
-                play(message,currentindex);
-            }
-            }
+            logs=bot.commands.get('queue').execute(message,args,logs,inqueue,currentindex,play);
             break;
 
         case 'loop':
-            inloop=true;
-            if(!args[1]){
-                message.channel.send("Add what title you wish to be looped");
-            }else{
-                if(!message.member.voice.connection){
-                    if(message.member.voice.channel){
-                        inChannel=true;
-                        message.member.voice.channel.join()}
-                        currentindex=args[1];
-                        play(message,currentindex);
-                    }else{
-                        inChannel=false;
-                    }
-            }
+            inloop =bot.commands.get('loop').execute(message,args,inloop,inChannel,currentindex,play);
             break;
 
         case 'skip':
-            message.channel.bulkDelete(1);
-            if(logs[1]==undefined){
-                message.channel.send("Queue has ended!");
-                console.log("Queue has ended!");
-                message.channel.send("!stop");
-            }else{
-            console.log("Skipping: "+logs[0]);
-            var skip= logs;
-            skip.shift();
-            logs=skip;
-            currentindex=logs[0];
+            var skipdata =bot.commands.get('skip').execute(message,args,logs,currentindex,play);
+            logs=skipdata.logs;
+            currentindex=skipdata.ci
             play(message,currentindex);
-            }
             break;
 
         case 'clearhistory':
-            var catalog;
-            fs.readFile('histlog.txt', 'utf8', function (err,data) {
-                if (err) {
-                  return console.log(err);
-                }
-                catalog=data;
-            fs.appendFile('catalog.txt', catalog, function (err) {
-                if (err) throw err;
-                console.log('Saved!');
-              });
-              catalog="";
-            fs.writeFile('histlog.txt', catalog, function (err) {
-                if (err) throw err;
-              });
-              });
-            //var author = message.member.nickname;
-
-
+            bot.commands.get('clearhistory').execute(message,args);
         break;
         
         case 'stop':
-            logs=[];
-            currentindex="";
-            inloop=false;
-            message.channel.bulkDelete(1);
-            if(message.member.voice.channel){
-                inChannel=true;
-            }else{
-                inChannel=false;
-            }
-            if(inChannel==true) {
-                message.member.voice.channel.join()
-                 message.guild.voice.connection.disconnect();           
-            }
-            
+            var stopdata =bot.commands.get('stop').execute(message,args,logs,currentindex,inloop);
+            logs=stopdata.logs;
+            currentindex=stopdata.ci;
+            inloop=stopdata.inl;
             break;
         
         case 'everyname':
-            message.channel.bulkDelete(1);
-            var namestr="";
-            for(var i=0; i<cache.name.length; i++){
-                namestr+=cache.name[i]+", ";
-            }
-            message.channel.send(namestr);
-
-        break;
-
+            bot.commands.get('everyname').execute(message,args,cache);
+            break;
         case 'hts':
-            cases.hts(message);
+            //removed command. you can add it if you want idc
             break;
 
         case 'cl':
-            cases.cl(message);
+            bot.commands.get('cl').execute(message,args, play);
             break;
 
         case 'cs':
-            cases.cs(message);
+            bot.commands.get('cs').execute(message,args,play);
             break;
         
         case 'coinflip':
-            cases.coinflip(message);
+            bot.commands.get('coinflip').execute(message,args);
             break;
 
 }
 })
 
 function play(message,str){
+    if(str==undefined||str=="--endquery--"){
+        console.log("str undefined in play");
+    }else{
     str=str.trim();
     alreadyAPIcalled=false;
     for(var i=0; i<cache.name.length; i++){
@@ -260,9 +160,17 @@ function play(message,str){
                 }
                 play(message,str);
                 throw err;
-            }else{                
+            }else{
+            //message.channel.send(r.videos[0].url);
+            //console.log(r);
+                
             if(r.videos[0]==undefined){
+                //setTimeout(play,1000*2,message,str);
                 play(message,str);
+                //message.channel.send("!play "+str)
+                //message.channel.send("!play "+str);
+               // message.reply("Undefined :/")
+                //message.channel.send("Please try again");
                 if(firstplay==true){
                     var num= Math.floor(Math.random()*flavortext.length);
                     message.channel.send(flavortext[num]);
@@ -272,6 +180,7 @@ function play(message,str){
                     console.log("Playing in Server: "+message.guild.name);
                     console.log("--------------------------------\n");
                     firstplay=false;   
+                    
                 }
                 
             }else{
@@ -279,12 +188,19 @@ function play(message,str){
                 cache.url.push(r.videos[0].url);
                 cache.name.push(str);
                 console.log("Added to cache");
+                //console.log("NAME[0] "+cache.name[0]);
+                //console.log("URL[0] "+cache.url[0]);
+                //console.log("NAME[1] "+cache.name[1]);
+                //console.log("URL[1] "+cache.url[1]);
+                //console.log("NAME[2] "+cache.name[2]);
+                //console.log("URL[2] "+cache.url[2]);
                 play(message,str);
             }
         
     }
 })
     }
+}
 }
 
 
@@ -299,6 +215,8 @@ function addtoHistory(str,url,seconds,author){
 }
 
 function grabCache(){
+    //var string = "{'key':'value'}";
+    //var obj = JSON.parse(string);
     fs.readFile('cache.json', 'utf8', function (err,data) {
         if (err) {
           return console.log(err);
@@ -322,7 +240,9 @@ fs.writeFile("cache.json", jsonData, function(err) {
 }
 
 function alreadyCalled(message,str){
-    message.channel.bulkDelete(1);
+        if(str=="--endquery--"){
+            message.channel.send("!stop");
+        }else{
         console.log("Already called!");
         message.member.voice.channel.join().then(function(connection){
         
@@ -336,14 +256,17 @@ function alreadyCalled(message,str){
                 alreadyCalled(message,str);
             });
         }else if(logs.length>1||inqueue==true){
+            //message.channel.bulkDelete(1);
             inqueue=false;
         let dispatcher = connection.play(ytdl(url,{filter: "audioonly"})).on("finish",()=>{
             logs.shift();
             play(message,logs[0]);
         });
     }else{
+        message.channel.bulkDelete(1);
         let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}))
-        //ytdl(url).pipe(fs.createWriteStream('audio.mp3'));
+        //ytdl(url).pipe(fs.createWriteStream('audio.mp3')); //Use this line to download an mp3 file of the chosen track
     }
     })
+}
 }

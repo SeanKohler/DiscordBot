@@ -1,7 +1,7 @@
 # DiscordBot
 I spent time researching how bots work within Discord. This is the result of my efforts
 
------------------------------------------------------------ List of Commands----------------------------------------------------------- 
+--------------------------------------------------- List of Commands----------------------------------------------------------- 
 
 !cl         -I use this for personal use. The url can be changed to a text string or different url to be used as a shortcut to a specific song
 

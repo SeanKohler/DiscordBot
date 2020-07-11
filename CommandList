@@ -1,25 +1,33 @@
-!play           //Will take any argument and search youtube, pull the top result, join your voice channel if you are in one
-                //and then being playing the audio from whatever you searched for
-                
-!queue          //Takes a list of songs you want to play. if the song has a space in the name replace it with a "-". here is an example of the command being run:
-                // EX. !queue happy-birthday Wii-channel-theme Smb2-main-theme
-                // If you leave a space instead of a "-". It will play the next word as a seperate song
-                
-!skip           //The bot will skip the current song playing (ONLY works when a queue is active)
+!cl         -I use this for personal use. The url can be changed to a text string or different url to be used as a shortcut to a specific song
 
-!loop           //The bot will loop any one song provided
+!clearchat  -This command takes a second argument as an integer and will delete the specified number of lines EX. "!clearchat 10"
 
-!stop           //The bot will stop playing audo and leave the voice channel
+!clearhistory   -This command will empty the histlog.txt file
 
-!clearchat      //The bot will remove lines of text in the discord channel (!clearchat 10)
+!coinflip   -This command will return either Heads or Tails. Choose one before calling the command
 
-!ping           //The bot will respond pong!
+!cs         -Same as !cl
 
-!info           //The bot will respond sarcastically unless the second argument typed in is version (!info version)
+!embed      -This prints out an embed containing information about the user who typed the command
 
-!embed          //The bot will display basic information about the user that typed it in
+!everyname  -This prints a short version of !history where it only gives the names of videos that have been played
 
-!rps            //The bot will play rock paper scissors with you! requires a second argument (!rps r)
+!history    -This prints out the name of the video, url of the video, the durration in seconds of the video, and the user who requested the video
 
-!coinflip       //The bot will reply either Heads or Tails
+!info       -This command currently only has version as a second argument and will be expanded upon. Makes sarcastic remarks as a joke
 
+!loop       -This command takes a second argument and will play the given string on a loop. To stop use !stop
+
+!ping       -This is the first command I created. Responds pong!
+
+!play       -This takes a second argument and will play audio of the search result of the string. Combines spaces EX. !play smb2 main theme
+
+!queue      -Same as !play but spaces seperate songs and use '-' as normal spaces EX. !queue smb2-main-theme wii-channel-theme
+
+!rps        -This takes a second argument. Anything that resembles Rock, Paper, or Scissors EX !rps R, !rps r, !rps Rock, !rps rock
+
+!skip       -This command will function as a skip command. Only works properly when !queue is active
+
+!stop       -This command will stop all operation related to audio
+
+!webbsite   -Please check out more of my github :)

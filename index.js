@@ -343,7 +343,7 @@ function alreadyCalled(message,str){
         });
     }else{
         let dispatcher = connection.play(ytdl(url,{filter: "audioonly"}))
-        ytdl(url).pipe(fs.createWriteStream('audio.mp3'));
+        //ytdl(url).pipe(fs.createWriteStream('audio.mp3'));
     }
     })
 }

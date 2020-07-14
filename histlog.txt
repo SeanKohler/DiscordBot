@@ -1,0 +1,1 @@
+<Your input string here> -- <Your youtube url here> -- <durration in seconds here> -- <Your discord name here>

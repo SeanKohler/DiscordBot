@@ -8,7 +8,13 @@ module.exports = {
               return console.log(err);
             }
             console.log(data);
-            message.channel.send(data);
+            try{
+              message.channel.send(data)
+            }catch (error) {
+              message.channel.send("file too large: !clearhistory or !everyname for shorter history version");
+              console.log(error);
+            }
+            
           });
     }
 }

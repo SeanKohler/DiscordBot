@@ -1,6 +1,6 @@
 //---------------------------------------------
 //-------- Code Written by Sean Kohler --------
-//------ Current Working Version: 1.4.2 -------
+//------ Current Working Version: 1.4.3 -------
 //---------------------------------------------
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
@@ -67,7 +67,7 @@ bot.on('message', message => {
             break;
 
         case 'info':
-            bot.commands.get('info').execute(message, args);
+            bot.commands.get('help').execute(message, args);
             break;
 
         case 'clearchat':
@@ -139,6 +139,10 @@ bot.on('message', message => {
 
         case 'createRole':
             bot.commands.get('createRole').execute(message, args[1]);//Go and create the role
+            break;
+        
+        case 'v':
+            bot.commands.get('v').execute(message,args);
             break;
     }
 })

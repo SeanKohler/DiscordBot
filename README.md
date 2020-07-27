@@ -11,15 +11,17 @@ I spent time researching how bots work within Discord. This is the result of my 
 
 !coinflip   -This command will return either Heads or Tails. Choose one before calling the command
 
+!createRole -This command will take a second argument which will be the name of the role you wish to create. You must have the ADMINISTRATOR permission
+
 !cs         -Same as !cl
 
 !embed      -This prints out an embed containing information about the user who typed the command
 
 !everyname  -This prints a short version of !history where it only gives the names of videos that have been played
 
-!history    -This prints out the name of the video, url of the video, the durration in seconds of the video, and the user who requested the video
+!help       -This command takes a second argument being a command and gives a description about that command EX. !help !play
 
-!info       -This command currently only has version as a second argument and will be expanded upon. Makes sarcastic remarks as a joke
+!history    -This prints out the name of the video, url of the video, the durration in seconds of the video, and the user who requested the video
 
 !loop       -This command takes a second argument and will play the given string on a loop. To stop use !stop
 
@@ -34,5 +36,7 @@ I spent time researching how bots work within Discord. This is the result of my 
 !skip       -This command will function as a skip command. Only works properly when !queue is active
 
 !stop       -This command will stop all operation related to audio
+
+!v          -This command prints the current working version number
 
 !webbsite   -Please check out more of my github :)
